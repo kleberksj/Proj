@@ -1,0 +1,42 @@
+name: Python Package using Conda
+
+on:
+  push:
+    branches:
+      - main  # Troque para a branch que deseja acionar o workflow
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    strategy:
+      max-parallel: 5
+
+    steps:
+    - name: Checkout código-fonte
+      uses: actions/checkout@v2
+
+    - name: Configurar Python 3.10
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.10
+
+    - name: Adicionar Conda ao PATH do sistema
+      run: |
+        echo "$CONDA/bin" >> "$GITHUB_PATH"
+
+    - name: Instalar dependências
+      run: |
+        conda env update --file environment.yml --name base
+
+    - name: Lint com Flake8
+      run: |
+        conda install flake8
+        # Parar a build se houver erros de sintaxe Python ou nomes indefinidos
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        # exit-zero trata todos os erros como avisos. O editor do GitHub tem 127 caracteres de largura
+        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
+    - name: Testar com Pytest
+      run: |
+        conda install pytest
+        pytest
